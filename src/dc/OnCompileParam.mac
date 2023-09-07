@@ -1,0 +1,27 @@
+ROUTINE OnCompileParam
+
+Get(Key,DefaultValue="")
+    New (Key,DefaultValue)
+    
+    Set expression = "##expression(""##class(dc.MyAppParam).Get(""""%1"""",""""%1"""")"")"
+    For replaceStr = Key, DefaultValue Set expression = $Replace(expression, "%1", replaceStr, , 1)
+    Set routineDBRef = "^^"_$$GetDBRoutines()
+    
+    Lock +^[routineDBRef]MyAppParam(Key)
+    If '$Data(^[routineDBRef]MyAppParam(Key), data) {
+        Set ^[routineDBRef]MyAppParam(Key) = $ListBuild(Key,DefaultValue,1) 
+        Lock -^[routineDBRef]MyAppParam(Key) 
+        Quit expression
+    }
+
+    Set $List(data,2) = DefaultValue, $List(data,3) = 1 + $ListGet(data,3)
+    Set ^[routineDBRef]MyAppParam(Key) = data
+    Lock -^[routineDBRef]MyAppParam(Key)
+    Quit expression
+
+GetDBRoutines()
+    New
+    New $NAMESPACE Set ns = $Namespace, $Namespace = "%SYS"
+    Do ##class(Config.Namespaces).Get(ns,.pNs), ##class(Config.Databases).Get(pNs("Routines"),.pDb)
+    Set $Namespace = ns
+    Quit pDb("Directory")
